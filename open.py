@@ -17,20 +17,27 @@ MODEL = "llama3.2"
 class Website:
     def __init__(self, url):
         self.url = url
-        response = requests.get(url, headers=HEADERS)
-        self.body = response.content
-        soup = BeautifulSoup(self.body, 'html.parser')
-        self.title = soup.title.string if soup.title else "No title found"
-        
-        if soup.body:
-            for tag in soup.body(['script', 'style', 'img', 'input']):
-                tag.decompose()
-            self.text = soup.body.get_text(separator='\n', strip=True)
-        else:
-            self.text = ""
-        
-        links = [link.get('href') for link in soup.find_all('a')]
-        self.links = [link for link in links if link]
+        self.title = "No title found"
+        self.text = ""
+        self.links = []
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=10)
+            response.raise_for_status()
+            self.body = response.content
+            soup = BeautifulSoup(self.body, 'html.parser')
+            self.title = soup.title.string if soup.title else "No title found"
+
+            if soup.body:
+                for tag in soup.body(['script', 'style', 'img', 'input']):
+                    tag.decompose()
+                self.text = soup.body.get_text(separator='\n', strip=True)
+            
+            links = [link.get('href') for link in soup.find_all('a')]
+            self.links = [link for link in links if link]
+        except requests.RequestException as e:
+            print(f"Error fetching {url}: {e}")
+        except Exception as e:
+            print(f"Unexpected error processing {url}: {e}")
     
     def get_contents(self):
         return f"Webpage Title:\n{self.title}\nWebpage Contents:\n{self.text}\n\n"
@@ -59,59 +66,79 @@ Respond in JSON:
 """
 
 def get_links(url):
-    website = Website(url)
-    
-    user_prompt = f"Here is the list of links on the website of {website.url} - \n"
-    user_prompt += "Please decide which of these are relevant web links for a brochure about the company:\n"
-    user_prompt += "\n".join(website.links)
-    
-    ollama_client = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
-    response = ollama_client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt}
-        ],
-        response_format={"type": "json_object"}
-    )
-    
-    result = response.choices[0].message.content
-    return json.loads(result)
+    try:
+        website = Website(url)
+        if not website.links:
+            return {"links": []}
+        
+        user_prompt = f"Here is the list of links on the website of {website.url} - \n"
+        user_prompt += "Please decide which of these are relevant web links for a brochure about the company:\n"
+        user_prompt += "\n".join(website.links)
+        
+        ollama_client = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
+        response = ollama_client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        result = response.choices[0].message.content
+        return json.loads(result)
+    except Exception as e:
+        print(f"Error processing links for {url}: {e}")
+        return {"links": []}
 
 def get_details(url):
-    result = "Landing page:\n"
-    result += retry(url)
-    links = get_links(url)
-    
-    print("Found links:", links)
-    
-    if "links" in links:
-        for link in links["links"]:
-            result += f"\n\n{link}\n"
-            result += retry(link["url"])
-    else:
-        result += "\nNo relevant links found.\n"
-    
-    return result
+    try:
+        result = "Landing page:\n"
+        result += retry(url)
+        links = get_links(url)
+        
+        print("Found links:", links)
+        
+        if "links" in links:
+            for link in links["links"]:
+                try:
+                    result += f"\n\n{link}\n"
+                    result += retry(link["url"])
+                except Exception as e:
+                    print(f"Error fetching link {link}: {e}")
+        else:
+            result += "\nNo relevant links found.\n"
+        
+        return result
+    except Exception as e:
+        print(f"Error processing details for {url}: {e}")
+        return "Error retrieving details."
 
 def brochure_user_prompt(company_name, url):
-    user_prompt = f"You are looking at a company called: {company_name}\n"
-    user_prompt += "Here are the contents of its landing page and other relevant pages. Use this information to build a brief brochure in markdown.\n"
-    user_prompt += get_details(url)
-    return user_prompt[:5000]
+    try:
+        user_prompt = f"You are looking at a company called: {company_name}\n"
+        user_prompt += "Here are the contents of its landing page and other relevant pages. Use this information to build a brief brochure in markdown.\n"
+        user_prompt += get_details(url)
+        return user_prompt[:5000]
+    except Exception as e:
+        print(f"Error creating user prompt for {company_name}: {e}")
+        return "Error generating user prompt."
 
 def create_brochure(company_name, url):
-    ollama_via_openai = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
-    
-    response = ollama_via_openai.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": brochure_user_prompt(company_name, url)}
-        ],
-    )
-    
-    result = response.choices[0].message.content
-    display(Markdown(result))  # Keeps the display functionality
-    return result  # Return the generated brochure
-
+    try:
+        ollama_via_openai = OpenAI(base_url='http://localhost:11434/v1', api_key='ollama')
+        
+        response = ollama_via_openai.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": brochure_user_prompt(company_name, url)}
+            ],
+        )
+        
+        result = response.choices[0].message.content
+        display(Markdown(result)) 
+        return result 
+    except Exception as e:
+        print(f"Error generating brochure for {company_name}: {e}")
+        return "Error creating brochure."
