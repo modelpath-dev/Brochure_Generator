@@ -65,7 +65,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Title
 st.markdown("""
     <h1 style='text-align: center; 
                color: grey;
