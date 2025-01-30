@@ -155,7 +155,7 @@ if st.button("Generate Brochure ✨"):
                     Completed 
                 """
                 
-                # Display with typing effect
+               
                 display_markdown_with_typing(formatted_content, output_container)
                 
             except Exception as e:
