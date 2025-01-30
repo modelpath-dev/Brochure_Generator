@@ -139,13 +139,13 @@ if st.button("Generate Brochure ✨"):
     if company_name and url:
         with st.spinner(" Creating..."):
             try:
-                # Get brochure content based on model choice
+               
                 if model_choice == "Open":
                     brochure_content = open_brochure(company_name, url)
                 else:
                     brochure_content = close_brochure(company_name, url)
                 
-                # Format the content with markdown
+                
                 formatted_content = f"""
                 
 
