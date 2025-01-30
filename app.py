@@ -74,7 +74,7 @@ st.markdown("""
     </h1>
     """, unsafe_allow_html=True)
 
-# Subtitle
+
 st.markdown("""
     <p style='text-align: center; font-size: 1.2em; color: white;'>
         Transform your company information into engaging brochures! 
