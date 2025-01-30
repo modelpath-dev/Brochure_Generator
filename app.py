@@ -135,7 +135,7 @@ def display_markdown_with_typing(text, container, delay=0.02):
             time.sleep(delay)
         current_text += '\n'
 
-if st.button("✨ Generate Beautiful Brochure ✨"):
+if st.button("Generate Brochure ✨"):
     if company_name and url:
         with st.spinner(" Creating..."):
             try:
