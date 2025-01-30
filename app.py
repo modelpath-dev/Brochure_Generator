@@ -81,7 +81,6 @@ st.markdown("""
     </p>
     """, unsafe_allow_html=True)
 
-# Create two columns for inputs
 col1, col2 = st.columns(2)
 
 with col1:
