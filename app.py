@@ -101,7 +101,7 @@ url = st.text_input(
     help="Enter your company's website URL"
 )
 
-# Create a container for the brochure output
+
 output_container = st.empty()
 
 def display_markdown_with_typing(text, container, delay=0.02):
