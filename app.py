@@ -3,7 +3,6 @@ from open import create_brochure as open_brochure
 from close import create_brochure as close_brochure
 import time
 
-# Page configuration
 st.set_page_config(
     page_title="AI Brochure Generator",
     layout="centered",
